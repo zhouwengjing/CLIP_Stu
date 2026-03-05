@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+mmclip/__init__.py
+mmclip/cli.py
+mmclip/data.py
+mmclip/encoder.py
+mmclip/indexer.py
+mmclip/utils.py
+mmclip.egg-info/PKG-INFO
+mmclip.egg-info/SOURCES.txt
+mmclip.egg-info/dependency_links.txt
+mmclip.egg-info/top_level.txt
+tests/test_pipeline.py

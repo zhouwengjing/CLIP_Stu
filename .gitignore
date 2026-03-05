@@ -1,0 +1,32 @@
+data/*
+
+models/*
+models/
+
+# Python缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 其他大文件
+*.pth
+*.pt
+*.bin
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+.codeartsdoer/*
+.codemate/*
+
+artifacts/*
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

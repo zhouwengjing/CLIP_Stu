@@ -30,3 +30,6 @@ artifacts/*
 *.swp
 *.swo
 *~
+
+*.js
+*.json

@@ -41,6 +41,10 @@ include = ["mmclip"]  # 指定要包含的包
 pytest -q
 ```
 
+# mmclip_day1
+
+Day2 goal: build a text-to-image and text-to-image retrieval pipeline with CLIP embeddings.
+
 ## 文本搜图 + 输出 JSON
 ```bash
 python -m mmclip.cli search --model C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\models --index-dir artifacts --query "a cat" --topk 5 --output results_text.json --device cuda
@@ -48,6 +52,18 @@ python -m mmclip.cli search --model C:\Users\WenJing\Documents\PytorchProjects\C
 
 ## 以图搜图 + 输出 JSON
 ```bash
-python -m mmclip.cli search-image --index-dir artifacts --query-image C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\data\image --topk 5 --output results_image.json --device cuda
+python -m mmclip.cli search-image --index-dir artifacts --query-image C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\data\images\9.jpeg --topk 5 --output results_image.json --device cuda
 ```
 
+## 在IDE中调试（PyCharm）
+### 方法一 修改配置文件
+-   可以右键选中更多运行和调试，在点击修改运行配置。或点击右上角python下拉图标，再点击配置编辑
+- 将脚本改为模块，并写入mmclip.cli
+- 之后再配置命令行参数如下，需要给artifacts文件夹加一个绝对的路径
+
+- ```bash
+  python -m mmclip.clisearch --model C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\models --index-dir C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\artifacts --query "a cat" --topk 5 --output results_text.json --device cuda
+
+### 方法三 创建一个调试入口文件
+- debug.runner.py
+- 将原始配置写入到配置文件中，不用修改其它

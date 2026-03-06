@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
+
 import json
 from datetime import datetime
 
@@ -36,7 +37,7 @@ def save_results_json(output_path: Path, query: dict, results: List[Tuple[float,
             {"rank": i + 1, "score": score, "path": row["path"], "id": row.get("id")}
             for i, (score, row) in enumerate(results)
         ],
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now().isoformat() + "Z",
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
@@ -70,14 +71,14 @@ def search_topk_by_image(
     return [(float(scores[i]), meta[int(i)]) for i in idx.tolist()]
 
 def search_topk(
-    query: str,
-    embs: np.ndarray,
-    meta: List[dict],
-    encoder: ClipEncoder,
-    topk: int = 5,
+    query: str,  # 与图片对比的文本
+    embs: np.ndarray,  # 图片向量[nums, 512]
+    meta: List[dict],  # 图片信息
+    encoder: ClipEncoder,  # ClipEncoder类
+    topk: int = 5,  # s
     faiss_index_path: Path | None = None,
 ) -> List[Tuple[float, dict]]:
-    q = encoder.encode_texts([query])[0:1]
+    q = encoder.encode_texts([query])[0:1]  # encoder.encode_texts([query]) 返回的是一个 二维数组，形状为 [文本数量，512]。输入两句话，它做切面也只保留一句话
 
     if faiss_index_path is not None and faiss_index_path.exists():
         try:
@@ -93,9 +94,9 @@ def search_topk(
             logger.warning("Faiss search failed, fallback to brute-force. (%s)", e)
 
     # 2) fallback: brute-force cosine (since vectors normalized => dot = cosine)
-    scores = (q @ embs.T).reshape(-1)  # (N,)
-    idx = np.argsort(-scores)[:topk]
-    return [(float(scores[i]), meta[int(i)]) for i in idx.tolist()]
+    scores = (q @ embs.T).reshape(-1)  # (N,) 文本向量和图片向量之间做点积，得到的结果是一个一维数组，表示的是文本向量和图片向量之间的相似度。
+    idx = np.argsort(-scores)[:topk]  # 返回从大到小的索引数据，类型是 numpy.ndarray
+    return [(float(scores[i]), meta[int(i)]) for i in idx.tolist()]  # [(score, list[dict]), ...]
 
 
 def build_cmd(args: argparse.Namespace) -> None:
@@ -158,6 +159,13 @@ def search_cmd(args: argparse.Namespace) -> None:
     for rank, (score, row) in enumerate(results, start=1):
         print(f"[{rank}] score={score:.4f}  path={row['path']}")
     print("====================\n")
+    if args.output:
+        save_results_json(
+            Path(args.output),
+            query={"type": "text", "text": args.query, "topk": args.topk},
+            results=results,
+        )
+        logger.info("Saved results JSON: %s", args.output)
 
 # new add
 def search_image_cmd(args: argparse.Namespace) -> None:

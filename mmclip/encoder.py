@@ -109,7 +109,7 @@ class ClipEncoder:
             img_feat = torch.nn.functional.normalize(img_feat, p=2, dim=-1)
             feats.append(img_feat.detach().float().cpu().numpy())
 
-        return np.concatenate(feats, axis=0).astype(np.float32)  # 返回的是一个二维矩阵
+        return np.concatenate(feats, axis=0).astype(np.float32)  # 返回的是一个二维矩阵 [nums, 512维特征]
 
     @torch.inference_mode()
     def encode_texts(self, texts: Sequence[str], batch_size: int = 64) -> np.ndarray:  # 黄金法则： 图片是"密集计算"，文本是"稀疏计算"，所以文本可以用更大的 batch_size 来提高效率！

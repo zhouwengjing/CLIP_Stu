@@ -37,13 +37,13 @@ def build_index(image_paths: List[Path], encoder: ClipEncoder, out_dir: Path, ba
     paths = IndexPaths(out_dir)
 
     logger.info("Encoding %d images ...", len(image_paths))
-    embs = encoder.encode_images(image_paths, batch_size=batch_size)
+    embs = encoder.encode_images(image_paths, batch_size=batch_size)  # 这个是ClipEncoder类，调用自己的encode_images方法，返回的是2维数组[nums, 512]
 
-    np.save(paths.embeddings_npy, embs)
+    np.save(paths.embeddings_npy, embs)  # 将embs 2维矩阵写入embeddings.npy文件
     logger.info("Embeddings saved: %s (shape=%s)", paths.embeddings_npy, embs.shape)
 
     meta_rows: List[Dict[str, str]] = [{"id": str(i), "path": str(p)} for i, p in enumerate(image_paths)]  # [{id: str, path: str}, {}, ...]
-    write_jsonl(paths.meta_jsonl, meta_rows)
+    write_jsonl(paths.meta_jsonl, meta_rows)  # 将图片的id和path写入meta.jsonl文件中
     logger.info("Meta saved: %s (rows=%d)", paths.meta_jsonl, len(meta_rows))
 
     _ = try_build_faiss_index(embs, paths.faiss_index)
@@ -57,7 +57,7 @@ def load_index(out_dir: Path) -> Tuple[np.ndarray, List[Dict[str, str]], Path]:
     embs = np.load(paths.embeddings_npy).astype(np.float32)
     from .utils import read_jsonl
     meta = read_jsonl(paths.meta_jsonl)
-    return embs, meta, paths.faiss_index
+    return embs, meta, paths.faiss_index  # 返回的是[nums, 512]的数组，和[{id: str, path: str}, 。。]
 
 from typing import List, Dict, Tuple
 # new add

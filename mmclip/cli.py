@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
+import json
+from datetime import datetime
 
 
 """
@@ -26,6 +28,46 @@ logging.getLogger 是定义在 logging 模块中的一个函数，因此称为�
 """
 logger = logging.getLogger("mmclip.cli")  # 记录器对象，
 
+# new add
+def save_results_json(output_path: Path, query: dict, results: List[Tuple[float, dict]]) -> None:
+    payload = {
+        "query": query,
+        "results": [
+            {"rank": i + 1, "score": score, "path": row["path"], "id": row.get("id")}
+            for i, (score, row) in enumerate(results)
+        ],
+        "created_at": datetime.utcnow().isoformat() + "Z",
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+# new add
+def search_topk_by_image(
+    query_image_path: Path,
+    embs: np.ndarray,
+    meta: List[dict],
+    encoder: ClipEncoder,
+    topk: int = 5,
+    faiss_index_path: Path | None = None,
+) -> List[Tuple[float, dict]]:
+    q = encoder.encode_images([query_image_path])[0:1]  # (1, d)
+
+    if faiss_index_path is not None and faiss_index_path.exists():
+        try:
+            import faiss  # type: ignore
+            index = faiss.read_index(str(faiss_index_path))
+            scores, ids = index.search(q, topk)
+            results: List[Tuple[float, dict]] = []
+            for s, i in zip(scores[0].tolist(), ids[0].tolist()):
+                results.append((float(s), meta[int(i)]))
+            return results
+        except Exception as e:
+            logger.warning("Faiss search failed, fallback to brute-force. (%s)", e)
+
+    scores = (q @ embs.T).reshape(-1)
+    idx = np.argsort(-scores)[:topk]
+    return [(float(scores[i]), meta[int(i)]) for i in idx.tolist()]
 
 def search_topk(
     query: str,
@@ -117,6 +159,37 @@ def search_cmd(args: argparse.Namespace) -> None:
         print(f"[{rank}] score={score:.4f}  path={row['path']}")
     print("====================\n")
 
+# new add
+def search_image_cmd(args: argparse.Namespace) -> None:
+    seed_everything(args.seed)
+    out_dir = Path(args.index_dir)
+
+    embs, meta, faiss_path = load_index(out_dir)
+    encoder = ClipEncoder(model_name=args.model, device=args.device, use_amp=not args.no_amp)
+
+    qimg = Path(args.query_image)
+    results = search_topk_by_image(
+        query_image_path=qimg,
+        embs=embs,
+        meta=meta,
+        encoder=encoder,
+        topk=args.topk,
+        faiss_index_path=faiss_path,
+    )
+
+    print("\n=== TopK Results (Image Query) ===")
+    for rank, (score, row) in enumerate(results, start=1):
+        print(f"[{rank}] score={score:.4f}  path={row['path']}")
+    print("=================================\n")
+
+    if args.output:
+        save_results_json(
+            Path(args.output),
+            query={"type": "image", "path": str(qimg), "topk": args.topk},
+            results=results,
+        )
+        logger.info("Saved results JSON: %s", args.output)
+
 
 def make_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser("mmclip_day1")
@@ -143,7 +216,21 @@ def make_parser() -> argparse.ArgumentParser:
     s.add_argument("--model", default="openai/clip-vit-base-patch32")
     s.add_argument("--device", default="cuda")
     s.add_argument("--no-amp", action="store_true")
+    # new add one line
+    s.add_argument("--output", default=None, help="Save results to JSON file")
     s.set_defaults(func=search_cmd)
+
+    # new add
+    # search-image
+    si = sub.add_parser("search-image", help="Search images by query image")
+    si.add_argument("--index-dir", default="artifacts", help="Index folder (out-dir)")
+    si.add_argument("--query-image", required=True, help="Path to query image")
+    si.add_argument("--topk", type=int, default=5)
+    si.add_argument("--output", default=None, help="Save results to JSON file")
+    si.add_argument("--model", default="openai/clip-vit-base-patch32")
+    si.add_argument("--device", default="cuda")
+    si.add_argument("--no-amp", action="store_true")
+    si.set_defaults(func=search_image_cmd)
 
     return p
 

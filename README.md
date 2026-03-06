@@ -40,3 +40,14 @@ include = ["mmclip"]  # 指定要包含的包
 # 开发模式安装 pip install -e
 pytest -q
 ```
+
+## 文本搜图 + 输出 JSON
+```bash
+python -m mmclip.cli search --model C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\models --index-dir artifacts --query "a cat" --topk 5 --output results_text.json --device cuda
+```
+
+## 以图搜图 + 输出 JSON
+```bash
+python -m mmclip.cli search-image --index-dir artifacts --query-image C:\Users\WenJing\Documents\PytorchProjects\CLIP_Stu\data\image --topk 5 --output results_image.json --device cuda
+```
+

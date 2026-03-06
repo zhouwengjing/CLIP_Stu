@@ -58,3 +58,10 @@ def load_index(out_dir: Path) -> Tuple[np.ndarray, List[Dict[str, str]], Path]:
     from .utils import read_jsonl
     meta = read_jsonl(paths.meta_jsonl)
     return embs, meta, paths.faiss_index
+
+from typing import List, Dict, Tuple
+# new add
+def brute_force_topk(q: np.ndarray, embs: np.ndarray, meta: List[Dict[str, str]], topk: int) -> List[Tuple[float, Dict[str, str]]]:
+    scores = (q @ embs.T).reshape(-1)
+    idx = np.argsort(-scores)[:topk]
+    return [(float(scores[i]), meta[int(i)]) for i in idx.tolist()]

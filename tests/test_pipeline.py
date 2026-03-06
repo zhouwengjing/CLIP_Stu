@@ -61,3 +61,24 @@ def test_build_and_load(tmp_path: Path) -> None:
     embs, meta, _ = load_index(out_dir)
     assert embs.shape[0] == len(image_paths)
     assert len(meta) == len(image_paths)
+
+def test_bruteforce_topk_order() -> None:
+    import numpy as np
+    from mmclip.indexer import brute_force_topk
+
+    # 3 个候选向量，2 维，已归一化（简单起见）
+    embs = np.array([
+        [1.0, 0.0],   # 与 query 点积 1.0
+        [0.0, 1.0],   # 与 query 点积 0.0
+        [0.6, 0.8],   # 与 query 点积 0.6
+    ], dtype=np.float32)
+    meta = [{"id": "0", "path": "a.jpg"}, {"id": "1", "path": "b.jpg"}, {"id": "2", "path": "c.jpg"}]
+
+    q = np.array([[1.0, 0.0]], dtype=np.float32)  # query 指向 x 轴
+    results = brute_force_topk(q, embs, meta, topk=3)
+
+    # 期望排序：a(1.0) > c(0.6) > b(0.0)
+    assert results[0][1]["path"] == "a.jpg"
+    assert results[1][1]["path"] == "c.jpg"
+    assert results[2][1]["path"] == "b.jpg"
+    assert results[0][0] >= results[1][0] >= results[2][0]
